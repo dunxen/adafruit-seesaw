@@ -32,6 +32,20 @@ macro_rules! impl_integer_read {
     };
 }
 
+macro_rules! impl_integer_read_with_delay {
+    ($fn:ident $nty:tt) => {
+        fn $fn(
+            &mut self,
+            addr: SevenBitAddress,
+            reg: &Reg,
+            delay: u32,
+        ) -> Result<$nty, Self::Error> {
+            self.register_read_with_delay::<{ ($nty::BITS / 8) as usize }>(addr, reg, delay)
+                .map($nty::from_be_bytes)
+        }
+    };
+}
+
 pub trait DriverExt {
     type Error;
 
@@ -39,6 +53,13 @@ pub trait DriverExt {
         &mut self,
         addr: SevenBitAddress,
         reg: &Reg,
+    ) -> Result<[u8; N], Self::Error>;
+
+    fn register_read_with_delay<const N: usize>(
+        &mut self,
+        addr: SevenBitAddress,
+        reg: &Reg,
+        delay: u32,
     ) -> Result<[u8; N], Self::Error>;
 
     fn register_write<const N: usize>(
@@ -52,6 +73,7 @@ pub trait DriverExt {
 
     impl_integer_read! { read_u8 u8 }
     impl_integer_read! { read_u16 u16 }
+    impl_integer_read_with_delay! { read_u16_with_delay u16 }
     impl_integer_read! { read_u32 u32 }
     impl_integer_read! { read_u64 u64 }
     impl_integer_read! { read_i8 i8 }
@@ -79,6 +101,19 @@ impl<T: Driver> DriverExt for T {
         let mut buffer = [0u8; N];
         self.write(addr, reg)?;
         self.delay_us(DELAY_TIME);
+        self.read(addr, &mut buffer)?;
+        Ok(buffer)
+    }
+
+    fn register_read_with_delay<const N: usize>(
+        &mut self,
+        addr: SevenBitAddress,
+        reg: &Reg,
+        delay: u32,
+    ) -> Result<[u8; N], Self::Error> {
+        let mut buffer = [0u8; N];
+        self.write(addr, reg)?;
+        self.delay_us(delay);
         self.read(addr, &mut buffer)?;
         Ok(buffer)
     }

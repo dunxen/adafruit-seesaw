@@ -4,6 +4,7 @@ pub mod gpio;
 pub mod neopixel;
 pub mod status;
 pub mod timer;
+pub mod touch;
 
 pub type Reg = [u8; 2];
 
@@ -38,6 +39,7 @@ pub(crate) enum Modules {
     Keypad = 0x10,
     Encoder = 0x11,
     Spectrum = 0x12,
+    // Soil = 0x13,
 }
 
 impl Modules {
